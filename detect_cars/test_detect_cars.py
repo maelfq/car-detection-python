@@ -11,7 +11,7 @@ class CarUtilsTest(unittest.TestCase):
         carUtils = CarUtils("Test")
 
         # act
-        boxes: list[list[int]] = carUtils.getCarBoxes(self.mercedes)
+        boxes: list[list[int]] = carUtils.get_car_boxes(self.mercedes)
 
         # assert
         self.assertTrue(1 == len(boxes))
@@ -21,7 +21,7 @@ class CarUtilsTest(unittest.TestCase):
         carUtils = CarUtils("Test")
 
         # act
-        isPictureTooBig = carUtils.isPictureTooBig(self.mercedes)
+        isPictureTooBig = carUtils.is_picture_too_big(self.mercedes)
 
         # assert
         self.assertTrue(isPictureTooBig)
@@ -31,7 +31,7 @@ class CarUtilsTest(unittest.TestCase):
         carUtils = CarUtils("Test")
 
         # act
-        newSize = carUtils.getResizedImageShape(self.mercedes)
+        newSize = carUtils.get_resized_image_shape(self.mercedes)
 
         # assert
         self.assertEqual((1080, 1622), newSize)
@@ -42,7 +42,7 @@ class CarUtilsTest(unittest.TestCase):
         carUtils = CarUtils("Test")
 
         # act
-        resizedPath: str = carUtils.resizeImage(self.mercedes)
+        resizedPath: str = carUtils.resize_image(self.mercedes)
 
         # assert
         self.assertTrue(os.path.exists(resizedPath))

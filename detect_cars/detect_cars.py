@@ -1,8 +1,13 @@
 import math
 import os.path
 from types import NoneType
+
 import cv2
+from cv2 import Mat
+from numpy import ndarray, dtype
 from ultralytics import YOLO
+
+from detect_cars.detect_licence_plate import detect_licence_plate
 
 
 class CarUtils:
@@ -10,57 +15,62 @@ class CarUtils:
     name: str = "None"
 
     def __init__(self, name):
-        print('init')
         self.model = YOLO("yolo11n.pt")
         self.name = name
 
-    def detectCarsOnImage(self, imagePath: str) -> NoneType:
+    def detect_cars_in_image(self, imagePath: str) -> NoneType:
 
-        if self.isPictureTooBig(imagePath):
-            resizedImagePath: str = self.resizeImage(imagePath)
-            if os.path.exists(resizedImagePath):
-                imagePath = resizedImagePath
+        image: Mat | ndarray = cv2.imread(imagePath)
 
-        #TODO: resize image and save it, returns resized image path
-        coordinatesOfCar = self.getCarBoxes(imagePath)
-        print(imagePath)
-        self.drawBoxesOnImage(coordinatesOfCar, imagePath)
-        #TODO: detect licence plates
-        # -> https://pyimagesearch.com/2020/09/21/opencv-automatic-license-number-plate-recognition-anpr-with-python/
-        #TODO: save licence plates in DB
+        if self.is_picture_too_big(imagePath):
+            image = self.resize_image(imagePath)
+            imagePath = self.get_resized_image_path(imagePath)
+
+        coordinatesOfCars = self.get_car_boxes(imagePath)
+        self.draw_boxes_on_image(coordinatesOfCars, imagePath)
+
+        print('yo')
+        for carIndex in range(len(coordinatesOfCars)):
+            # crop image of car
+            carImage = image[coordinatesOfCars[carIndex][1]:coordinatesOfCars[carIndex][3], coordinatesOfCars[carIndex][0]:coordinatesOfCars[carIndex][2]]
+            # cv2.imwrite('C:\\dev\\car-detection-python\\test2.jpeg', carImage)
+
+            detect_licence_plate(carImage)
+
         return
 
-    def getCarBoxes(self, imagePath: str) -> list[list[int]]:
+
+    def get_car_boxes(self, imagePath: str) -> list[list[int]]:
         results = self.model(imagePath)
-        print(results[0].boxes.xyxy)
         boxes = []
         for result in results:
             if self.model.names[int(result.boxes.cls[0])] == 'car':
-                print('Car detected')
-                tuple: tuple = result.boxes.xyxy.numpy()[0].tolist()
-                boxes.append(tuple)
+                tupleCoordinates: tuple = result.boxes.xyxy.numpy()[0].tolist()
+                roundedCoordinates = []
+                for coordIndex in range(len(tupleCoordinates)):
+                    roundedCoordinates.append(math.floor(tupleCoordinates[coordIndex]))
+                boxes.append(roundedCoordinates)
         print(boxes)
         return boxes
 
-    def drawBoxesOnImage(self, coordinates: list[list[int]], imagePath: str) -> None:
-        print('drawBoxes')
+    def draw_boxes_on_image(self, coordinates: list[list[int]], imagePath: str) -> None:
         image = cv2.imread(imagePath)
 
         for box in coordinates:
             print(box)
-            startPoint = (math.floor(box[0]), math.floor(box[1]))
-            endPoint = (math.floor(box[2]), math.floor(box[3]))
+            startPoint = (box[0], box[1])
+            endPoint = (box[2], box[3])
             thickness = 2
             color = (100, 100, 100)
             print(startPoint)
             print(endPoint)
 
             image = cv2.rectangle(image, startPoint, endPoint, color, thickness)
-        cv2.imwrite('test1.jpeg', image)
+        cv2.imwrite(self.get_boxes_image_path(imagePath), image)
 
         return
 
-    def isPictureTooBig(self, imagePath: str) -> bool:
+    def is_picture_too_big(self, imagePath: str) -> bool:
 
         image = cv2.imread(imagePath)
 
@@ -74,7 +84,7 @@ class CarUtils:
 
         return False
 
-    def getResizedImageShape(self, imagePath: str) -> tuple[int, int]:
+    def get_resized_image_shape(self, imagePath: str) -> tuple[int, int]:
 
         image = cv2.imread(imagePath)
 
@@ -97,17 +107,25 @@ class CarUtils:
 
         return newHeight, newWidth
 
-    def resizeImage(self, imagePath: str) -> str:
-
-        fileName:str = str(os.path.basename(imagePath))
+    def get_resized_image_path(self, imagePath: str) -> str:
+        fileName: str = str(os.path.basename(imagePath))
         directory: str = str(os.path.dirname(imagePath))
 
+        return directory + os.sep + 'resized_' + fileName
+
+    def get_boxes_image_path(self, imagePath) -> str:
+        fileName: str = str(os.path.basename(imagePath))
+        directory: str = str(os.path.dirname(imagePath))
+
+        return directory + os.sep + 'boxes_' + fileName
+
+    def resize_image(self, imagePath: str) -> Mat | ndarray:
         image = cv2.imread(imagePath)
 
-        resizedImagePath: str = directory + os.sep + 'resized_' + fileName
+        resizedImagePath: str = self.get_resized_image_path(imagePath)
 
-        newHeight, newWidth = self.getResizedImageShape(imagePath)
+        newHeight, newWidth = self.get_resized_image_shape(imagePath)
         newImage = cv2.resize(image, (newWidth, newHeight))
         cv2.imwrite(resizedImagePath, newImage)
 
-        return resizedImagePath
+        return newImage
