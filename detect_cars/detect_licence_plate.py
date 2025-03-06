@@ -1,3 +1,5 @@
+import os
+
 import cv2
 import imutils
 import numpy as np
@@ -8,18 +10,20 @@ import easyocr
 
 def detect_licence_plate(image: Mat | ndarray) -> str:
     licence_plate_image = get_licence_plate_cropped(image)
-    imageTmp = cv2.imwrite(r'C:\dev\car-detection-python\tmp.jpeg', licence_plate_image)
-    texts = read_text_from_image(imageTmp)
+    texts = read_text_from_image(licence_plate_image)
+    print(texts)
     if len(texts) >= 1:
         return texts[0]
     return ""
 
 
 def read_text_from_image(image: Mat | ndarray) -> list[str]:
-    tmpImagePath: str = r'C:\dev\car-detection-python\tmp.jpeg'
-    cv2.imwrite(tmpImagePath, image)
+    tmp_image_path: str = os.getcwd() + os.sep + 'tmp.jpeg'
+    cv2.imwrite(tmp_image_path, image)
     reader = easyocr.Reader(['en'])  # this needs to run only once to load the model into memory
-    result = reader.readtext(tmpImagePath)
+    result = reader.readtext(tmp_image_path)
+    print(result)
+    os.remove(tmp_image_path)
 
     predicted_license_plates = []
 
@@ -39,7 +43,8 @@ def save_to_database(licence_plate: str) -> bool:
 
 
 def get_licence_plate_cropped(image: Mat | ndarray) -> Mat | ndarray:
-    # code found here: https://cyberworrier2000.medium.com/license-plate-recognition-using-opencv-python-e03dd591f083
+    # code to get licence plate found here:
+    # https://cyberworrier2000.medium.com/license-plate-recognition-using-opencv-python-e03dd591f083
 
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
     gray = cv2.bilateralFilter(gray, 13, 15, 15)
@@ -75,6 +80,6 @@ def get_licence_plate_cropped(image: Mat | ndarray) -> Mat | ndarray:
     (x, y) = np.where(mask == 255)
     (topx, topy) = (np.min(x), np.min(y))
     (bottomx, bottomy) = (np.max(x), np.max(y))
-    Cropped = gray[topx:bottomx + 1, topy:bottomy + 1]
+    cropped_licence_plate = gray[topx:bottomx + 1, topy:bottomy + 1]
 
-    return Cropped
+    return cropped_licence_plate

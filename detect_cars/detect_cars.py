@@ -10,32 +10,33 @@ from ultralytics import YOLO
 from detect_cars.detect_licence_plate import detect_licence_plate
 
 
+
+
 class CarUtils:
     model: YOLO | NoneType = None
     name: str = "None"
+    enable_draw_boxes: bool = False
 
     def __init__(self, name):
         self.model = YOLO("yolo11n.pt")
         self.name = name
 
-    def detect_cars_in_image(self, imagePath: str) -> NoneType:
+    def detect_cars_in_image(self, image_path: str) -> NoneType:
 
-        image: Mat | ndarray = cv2.imread(imagePath)
+        image: Mat | ndarray = cv2.imread(image_path)
 
-        if self.is_picture_too_big(imagePath):
-            image = self.resize_image(imagePath)
-            imagePath = self.get_resized_image_path(imagePath)
+        if self.is_picture_too_big(image_path):
+            image = self.resize_image(image_path)
+            image_path = self.get_resized_image_path(image_path)
 
-        coordinatesOfCars = self.get_car_boxes(imagePath)
-        self.draw_boxes_on_image(coordinatesOfCars, imagePath)
+        coordinates_of_cars = self.get_car_boxes(image_path)
+        if self.enable_draw_boxes:
+            self.draw_boxes_on_image(coordinates_of_cars, image_path)
 
-        print('yo')
-        for carIndex in range(len(coordinatesOfCars)):
+        for car_index in range(len(coordinates_of_cars)):
             # crop image of car
-            carImage = image[coordinatesOfCars[carIndex][1]:coordinatesOfCars[carIndex][3], coordinatesOfCars[carIndex][0]:coordinatesOfCars[carIndex][2]]
-            # cv2.imwrite('C:\\dev\\car-detection-python\\test2.jpeg', carImage)
-
-            detect_licence_plate(carImage)
+            car_image = image[coordinates_of_cars[car_index][1]:coordinates_of_cars[car_index][3], coordinates_of_cars[car_index][0]:coordinates_of_cars[car_index][2]]
+            licence_plate_text: str = detect_licence_plate(car_image)
 
         return
 
@@ -45,16 +46,16 @@ class CarUtils:
         boxes = []
         for result in results:
             if self.model.names[int(result.boxes.cls[0])] == 'car':
-                tupleCoordinates: tuple = result.boxes.xyxy.numpy()[0].tolist()
-                roundedCoordinates = []
-                for coordIndex in range(len(tupleCoordinates)):
-                    roundedCoordinates.append(math.floor(tupleCoordinates[coordIndex]))
-                boxes.append(roundedCoordinates)
+                tuple_coordinates: tuple = result.boxes.xyxy.numpy()[0].tolist()
+                rounded_coordinates = []
+                for coord_index in range(len(tuple_coordinates)):
+                    rounded_coordinates.append(math.floor(tuple_coordinates[coord_index]))
+                boxes.append(rounded_coordinates)
         print(boxes)
         return boxes
 
-    def draw_boxes_on_image(self, coordinates: list[list[int]], imagePath: str) -> None:
-        image = cv2.imread(imagePath)
+    def draw_boxes_on_image(self, coordinates: list[list[int]], image_path: str) -> None:
+        image = cv2.imread(image_path)
 
         for box in coordinates:
             print(box)
@@ -62,70 +63,68 @@ class CarUtils:
             endPoint = (box[2], box[3])
             thickness = 2
             color = (100, 100, 100)
-            print(startPoint)
-            print(endPoint)
 
             image = cv2.rectangle(image, startPoint, endPoint, color, thickness)
-        cv2.imwrite(self.get_boxes_image_path(imagePath), image)
+        cv2.imwrite(self.get_boxes_image_path(image_path), image)
 
         return
 
-    def is_picture_too_big(self, imagePath: str) -> bool:
+    def is_picture_too_big(self, image_path: str) -> bool:
 
-        image = cv2.imread(imagePath)
+        image = cv2.imread(image_path)
 
-        maxHeight: int = 1080
-        maxWidth: int = 1920
+        max_height: int = 1080
+        max_width: int = 1920
 
         width: int = image.shape[0]
         height: int = image.shape[1]
-        if width > maxHeight or height > maxWidth:
+        if width > max_height or height > max_width:
             return True
 
         return False
 
-    def get_resized_image_shape(self, imagePath: str) -> tuple[int, int]:
+    def get_resized_image_shape(self, image_path: str) -> tuple[int, int]:
 
-        image = cv2.imread(imagePath)
+        image = cv2.imread(image_path)
 
-        maxHeight: int = 1080
-        maxWidth: int = 1920
+        max_height: int = 1080
+        max_width: int = 1920
 
         height: int = image.shape[0]
         width: int = image.shape[1]
 
-        newWidth: int
-        newHeight: int
+        new_width: int
+        new_height: int
 
-        correctWidthFactor: float = maxWidth / width
-        correctHeightFactor: float = maxHeight / height
+        correct_width_factor: float = max_width / width
+        correct_height_factor: float = max_height / height
 
-        factor: float = correctWidthFactor if (correctWidthFactor < correctHeightFactor) else correctHeightFactor
+        factor: float = correct_width_factor if (correct_width_factor < correct_height_factor) else correct_height_factor
 
-        newHeight = math.floor(factor * height)
-        newWidth = math.floor(factor * width)
+        new_height = math.floor(factor * height)
+        new_width = math.floor(factor * width)
 
-        return newHeight, newWidth
+        return new_height, new_width
 
-    def get_resized_image_path(self, imagePath: str) -> str:
-        fileName: str = str(os.path.basename(imagePath))
-        directory: str = str(os.path.dirname(imagePath))
+    def get_resized_image_path(self, image_path: str) -> str:
+        file_name: str = str(os.path.basename(image_path))
+        directory: str = str(os.path.dirname(image_path))
 
-        return directory + os.sep + 'resized_' + fileName
+        return directory + os.sep + 'resized_' + file_name
 
-    def get_boxes_image_path(self, imagePath) -> str:
-        fileName: str = str(os.path.basename(imagePath))
-        directory: str = str(os.path.dirname(imagePath))
+    def get_boxes_image_path(self, image_path) -> str:
+        file_name: str = str(os.path.basename(image_path))
+        directory: str = str(os.path.dirname(image_path))
 
-        return directory + os.sep + 'boxes_' + fileName
+        return directory + os.sep + 'boxes_' + file_name
 
-    def resize_image(self, imagePath: str) -> Mat | ndarray:
-        image = cv2.imread(imagePath)
+    def resize_image(self, image_path: str) -> Mat | ndarray:
+        image = cv2.imread(image_path)
 
-        resizedImagePath: str = self.get_resized_image_path(imagePath)
+        resized_image_path: str = self.get_resized_image_path(image_path)
 
-        newHeight, newWidth = self.get_resized_image_shape(imagePath)
-        newImage = cv2.resize(image, (newWidth, newHeight))
-        cv2.imwrite(resizedImagePath, newImage)
+        new_height, new_width = self.get_resized_image_shape(image_path)
+        new_image = cv2.resize(image, (new_width, new_height))
+        cv2.imwrite(resized_image_path, new_image)
 
-        return newImage
+        return new_image
