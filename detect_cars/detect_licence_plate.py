@@ -13,6 +13,7 @@ def detect_licence_plate(image: Mat | ndarray) -> str:
     texts = read_text_from_image(licence_plate_image)
     print(texts)
     if len(texts) >= 1:
+        save_to_database(texts[0])
         return texts[0]
     return ""
 
@@ -30,9 +31,6 @@ def read_text_from_image(image: Mat | ndarray) -> list[str]:
     for detection in result:
         print(detection)
         predicted_license_plates.append(detection[1])
-
-    if len(predicted_license_plates) == 1:
-        save_to_database(predicted_license_plates[0])
 
     return predicted_license_plates
 
